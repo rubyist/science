@@ -24,7 +24,7 @@
 //
 //      }
 //
-//      e.Publish = func(*science.Payload) {
+//      e.Publish = func(*science.Result) {
 //
 //      }
 //
@@ -64,8 +64,8 @@ type ComparatorFunc func(interface{}, interface{}) bool
 // be run.
 type EnabledFunc func() bool
 
-// PublishFunc is a function that receives the results Payload of the experiment.
-type PublishFunc func(*Payload)
+// PublishFunc is a function that receives the results Result of the experiment.
+type PublishFunc func(*Result)
 
 // Experiment is the experiment to run.
 type Experiment struct {
@@ -74,22 +74,22 @@ type Experiment struct {
 	Candidate    ExperimentFunc
 	Comparator   ComparatorFunc
 	Enabled      EnabledFunc
-	Publish      func(*Payload)
+	Publish      PublishFunc
 	controlFirst bool
 }
 
-// Payload is the result sent to the Publish function, if one is provided.
-type Payload struct {
-	Name         string    // Name of the experiment
-	Timestamp    time.Time // Time the experiment started
-	ControlFirst bool      // Whether the Control ran before the Candidate
-	Matched      bool      // Whether the control and candidate values matched
-	Control      *Result   // Control results
-	Candidate    *Result   // Candidate results
+// Result is the result sent to the Publish function, if one is provided.
+type Result struct {
+	Name         string       // Name of the experiment
+	Timestamp    time.Time    // Time the experiment started
+	ControlFirst bool         // Whether the Control ran before the Candidate
+	Matched      bool         // Whether the control and candidate values matched
+	Control      *Observation // Control results
+	Candidate    *Observation // Candidate results
 }
 
-// Result stores the results of running the Control or Candidate functions.
-type Result struct {
+// Observation stores the results of running the Control or Candidate functions.
+type Observation struct {
 	Duration time.Duration // Duration of the function call
 	Value    interface{}   // Return value of the function
 }
@@ -125,8 +125,8 @@ func (e *Experiment) Run() error {
 	}
 
 	ts := time.Now()
-	var control *Result
-	var candidate *Result
+	var control *Observation
+	var candidate *Observation
 
 	// Should swallow any panics by Candidate
 	if e.controlRunsFirst() {
@@ -140,7 +140,7 @@ func (e *Experiment) Run() error {
 	matched := e.Comparator(control.Value, candidate.Value)
 
 	if e.Publish != nil {
-		payload := &Payload{
+		result := &Result{
 			Name:         e.Name,
 			Matched:      matched,
 			ControlFirst: e.controlRunsFirst(),
@@ -148,7 +148,7 @@ func (e *Experiment) Run() error {
 			Candidate:    candidate,
 			Control:      control,
 		}
-		e.Publish(payload)
+		e.Publish(result)
 	}
 
 	return nil
@@ -158,14 +158,14 @@ func (e *Experiment) controlRunsFirst() bool {
 	return true
 }
 
-func observe(f func() interface{}) *Result {
+func observe(f func() interface{}) *Observation {
 	start := time.Now()
 
 	val := f()
 
 	duration := time.Since(start)
 
-	return &Result{
+	return &Observation{
 		Duration: duration,
 		Value:    val}
 }

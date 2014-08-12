@@ -78,27 +78,27 @@ func TestExperimentPublishesSuccess(t *testing.T) {
 		return 42
 	}
 
-	var payload *Payload
-	e.Publish = func(p *Payload) {
-		payload = p
+	var result *Result
+	e.Publish = func(p *Result) {
+		result = p
 	}
 
 	e.Run()
 
-	if payload.Name != "test experiment" {
-		t.Fatal("expected payload to contain the experiment name")
+	if result.Name != "test experiment" {
+		t.Fatal("expected result to contain the experiment name")
 	}
 
-	if !payload.Matched {
+	if !result.Matched {
 		t.Fatal("expected published results to be a match")
 	}
 
-	if payload.Control.Value.(int) != 42 {
-		t.Fatal("expected payload control result to contain the value")
+	if result.Control.Value.(int) != 42 {
+		t.Fatal("expected result control result to contain the value")
 	}
 
-	if payload.Candidate.Value.(int) != 42 {
-		t.Fatal("expected payload candidate result to contain the value")
+	if result.Candidate.Value.(int) != 42 {
+		t.Fatal("expected result candidate result to contain the value")
 	}
 }
 
@@ -113,8 +113,8 @@ func TestExperimentPublishesFailure(t *testing.T) {
 	}
 
 	var matched bool
-	e.Publish = func(payload *Payload) {
-		matched = payload.Matched
+	e.Publish = func(result *Result) {
+		matched = result.Matched
 	}
 
 	e.Run()
